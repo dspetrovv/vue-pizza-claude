@@ -39,3 +39,7 @@ coverage/
 
 # Claude
 .claude/
+
+# Project-local notes
+prompts-history.txt
+instructions.txt
