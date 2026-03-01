@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const TOKEN_KEY = 'auth_token'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
