@@ -110,4 +110,51 @@ describe('useCartStore', () => {
     item.quantity = 99
     expect(cart.items[0]!.quantity).toBe(1)
   })
+
+  it('treats same product with different ingredient modifications as separate items', () => {
+    const cart = useCartStore()
+    cart.clear()
+    cart.addItem({
+      id: 'pepperoni-traditional-28',
+      name: 'Пепперони',
+      description: 'Традиционное тесто, 28 см',
+      price: 399,
+      quantity: 1,
+    })
+    cart.addItem({
+      id: 'pepperoni-traditional-28-r:tomatoes',
+      name: 'Пепперони',
+      description: 'Традиционное тесто, 28 см',
+      price: 399,
+      quantity: 1,
+      removedIngredients: ['Томаты'],
+    })
+
+    expect(cart.items.length).toBe(2)
+    expect(cart.count).toBe(2)
+  })
+
+  it('merges identical items with same ingredient modifications', () => {
+    const cart = useCartStore()
+    cart.clear()
+    cart.addItem({
+      id: 'pepperoni-traditional-28-r:tomatoes',
+      name: 'Пепперони',
+      description: 'Традиционное тесто, 28 см',
+      price: 399,
+      quantity: 1,
+      removedIngredients: ['Томаты'],
+    })
+    cart.addItem({
+      id: 'pepperoni-traditional-28-r:tomatoes',
+      name: 'Пепперони',
+      description: 'Традиционное тесто, 28 см',
+      price: 399,
+      quantity: 1,
+      removedIngredients: ['Томаты'],
+    })
+
+    expect(cart.items.length).toBe(1)
+    expect(cart.items[0]!.quantity).toBe(2)
+  })
 })

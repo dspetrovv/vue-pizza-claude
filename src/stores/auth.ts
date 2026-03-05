@@ -7,6 +7,7 @@ const USER_KEY = 'auth_user'
 export interface AuthUser {
   phone: string
   name: string
+  email: string
 }
 
 /**
@@ -19,6 +20,10 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(restoreUser())
 
   const isAuthenticated = computed(() => !!token.value)
+  const hasCompleteProfile = computed(() => {
+    if (!user.value) return false
+    return !!(user.value.name.trim() && user.value.phone.trim() && user.value.email.trim())
+  })
 
   function restoreUser(): AuthUser | null {
     const raw = localStorage.getItem(USER_KEY)
@@ -44,13 +49,19 @@ export const useAuthStore = defineStore('auth', () => {
 
   function login(phone: string): void {
     const fakeToken = generateFakeToken(phone)
-    const userData: AuthUser = { phone, name: '' }
+    const userData: AuthUser = { phone, name: '', email: '' }
 
     token.value = fakeToken
     user.value = userData
 
     localStorage.setItem(TOKEN_KEY, fakeToken)
     localStorage.setItem(USER_KEY, JSON.stringify(userData))
+  }
+
+  function updateProfile(data: Partial<Pick<AuthUser, 'name' | 'email' | 'phone'>>): void {
+    if (!user.value) return
+    Object.assign(user.value, data)
+    localStorage.setItem(USER_KEY, JSON.stringify(user.value))
   }
 
   function logout(): void {
@@ -65,7 +76,9 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     user,
     isAuthenticated,
+    hasCompleteProfile,
     login,
+    updateProfile,
     logout,
   }
 })

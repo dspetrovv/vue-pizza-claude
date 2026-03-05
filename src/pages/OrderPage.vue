@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, reactive, onMounted } from 'vue'
+import { ref, shallowRef, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CartItem from '@/components/ui/CartItem.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -12,62 +12,18 @@ import AppCarousel from '@/components/ui/AppCarousel.vue'
 import DeliveryForm from '@/pages/DeliveryForm.vue'
 import PickupForm from '@/pages/PickupForm.vue'
 import { useCartStore } from '@/stores/cart'
+import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/utils/format'
-import { usePhoneMask } from '@/composables/usePhoneMask'
-import { getTimeSlots, getSuggestions } from '@/api/checkout'
+import { getSuggestions } from '@/api/checkout'
 import { createOrder } from '@/api/orders'
 import type { TimeOption, SuggestionProduct } from '@/types/checkout'
 
 const router = useRouter()
 const cart = useCartStore()
+const auth = useAuthStore()
 
 // ── Promo ──
 const promo = ref('')
-
-// ── About you ──
-const customerName = ref('')
-const { formatted: phoneFormatted, onInput: phoneOnInput, isComplete: phoneIsComplete } = usePhoneMask()
-const customerEmail = ref('')
-
-// ── Touched state ──
-const touched = reactive({
-  name: false,
-  phone: false,
-  email: false,
-})
-
-// ── Validation ──
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-const nameError = computed(() => {
-  if (!touched.name) return undefined
-  if (!customerName.value.trim()) return 'Заполните это поле'
-  return undefined
-})
-
-const phoneError = computed(() => {
-  if (!touched.phone) return undefined
-  if (!phoneFormatted.value) return 'Заполните это поле'
-  if (!phoneIsComplete.value) return 'Введите номер полностью'
-  return undefined
-})
-
-const emailError = computed(() => {
-  if (!touched.email) return undefined
-  if (!customerEmail.value.trim()) return 'Заполните это поле'
-  if (!EMAIL_RE.test(customerEmail.value.trim())) return 'Некорректный формат почты'
-  return undefined
-})
-
-// ── Digits-only filter ──
-function onDigitsOnly(setter: (v: string) => void) {
-  return (value: string | number) => {
-    const digits = String(value).replace(/\D/g, '')
-    // Remove leading zeros
-    const cleaned = digits.replace(/^0+/, '')
-    setter(cleaned)
-  }
-}
 
 // ── Delivery mode ──
 const deliveryMode = ref<'delivery' | 'pickup'>('delivery')
@@ -83,37 +39,94 @@ const timing = ref('asap')
 const scheduledDate = ref('')
 const scheduledTime = ref('')
 
-const timeOptions = ref<TimeOption[]>([])
 const suggestions = ref<SuggestionProduct[]>([])
 
 onMounted(async () => {
-  const [times, sugg] = await Promise.all([getTimeSlots(), getSuggestions()])
-  timeOptions.value = times
-  suggestions.value = sugg
+  suggestions.value = await getSuggestions()
+})
+
+// ── Dynamic time slots ──
+function padZero(n: number): string {
+  return n < 10 ? `0${n}` : String(n)
+}
+
+function getTodayString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`
+}
+
+const minDate = computed(() => getTodayString())
+
+const availableTimeSlots = computed<TimeOption[]>(() => {
+  const CLOSE_HOUR = 21
+  const OPEN_HOUR = 10
+  const slots: TimeOption[] = []
+
+  const now = new Date()
+  const isToday = scheduledDate.value === getTodayString()
+
+  let startHour = OPEN_HOUR
+  let startMinute = 0
+
+  if (isToday) {
+    // Earliest = now + 1 hour, rounded up to next :00 or :30
+    const earliest = new Date(now.getTime() + 60 * 60 * 1000)
+    startHour = earliest.getHours()
+    startMinute = earliest.getMinutes()
+
+    // Round up to next :00 or :30
+    if (startMinute > 30) {
+      startHour += 1
+      startMinute = 0
+    } else if (startMinute > 0) {
+      startMinute = 30
+    }
+  }
+
+  for (let h = startHour; h <= CLOSE_HOUR; h++) {
+    const minStart = (h === startHour) ? startMinute : 0
+    for (const m of [0, 30]) {
+      if (m < minStart) continue
+      if (h === CLOSE_HOUR && m > 0) continue
+      const label = `${padZero(h)}:${padZero(m)}`
+      slots.push({ label, value: label })
+    }
+  }
+
+  return slots
+})
+
+// Reset time when date changes or slots become unavailable
+watch([scheduledDate, availableTimeSlots], () => {
+  if (scheduledTime.value && !availableTimeSlots.value.some(s => s.value === scheduledTime.value)) {
+    scheduledTime.value = ''
+  }
 })
 
 // ── Payment ──
 const payment = ref('cash')
 
-// ── Change (for cash) ──
-const changeMode = ref('none')
-const changeAmount = ref('')
-
-const handleChangeAmount = onDigitsOnly((v) => { changeAmount.value = v })
-
 // ── Comment ──
 const orderComment = ref('')
+
+// ── Submit logic ──
+const isSubmitDisabled = computed(() => {
+  if (!auth.hasCompleteProfile) return true
+  if (timing.value === 'scheduled' && (!scheduledDate.value || !scheduledTime.value)) return true
+  return false
+})
 
 function goBack() {
   router.push('/')
 }
 
 async function submitOrder() {
+  if (isSubmitDisabled.value) return
   await createOrder({
     items: cart.items.map(i => ({ id: i.id, quantity: i.quantity, price: i.price })),
-    customerName: customerName.value,
-    customerPhone: phoneFormatted.value,
-    customerEmail: customerEmail.value,
+    customerName: auth.user!.name,
+    customerPhone: auth.user!.phone,
+    customerEmail: auth.user!.email,
     deliveryMode: deliveryMode.value,
     timing: timing.value as 'asap' | 'scheduled',
     scheduledDate: scheduledDate.value || undefined,
@@ -159,6 +172,8 @@ async function submitOrder() {
             :quantity="item.quantity"
             :image-url="item.imageUrl"
             :emoji="item.emoji"
+            :added-ingredients="item.addedIngredients"
+            :removed-ingredients="item.removedIngredients"
             @update:quantity="cart.updateQuantity(item.id, $event)"
             @remove="cart.removeItem(item.id)"
           />
@@ -204,34 +219,15 @@ async function submitOrder() {
           <!-- О вас -->
           <div class="order-page__checkout-section">
             <h3 class="order-page__checkout-heading">О вас</h3>
-            <div class="order-page__about-row">
-              <AppInput
-                v-model="customerName"
-                label="Имя*"
-                placeholder="Имя"
-                :error="nameError"
-                @blur="touched.name = true"
-              />
-              <AppInput
-                :model-value="phoneFormatted"
-                label="Номер телефона*"
-                placeholder="+7 (___) ___-__-__"
-                type="tel"
-                digits-only
-                :max-length="18"
-                :error="phoneError"
-                @update:model-value="phoneOnInput"
-                @blur="touched.phone = true"
-              />
-              <AppInput
-                v-model="customerEmail"
-                label="Почта*"
-                placeholder="Почта"
-                type="email"
-                :error="emailError"
-                @blur="touched.email = true"
-              />
+            <div v-if="auth.hasCompleteProfile" class="order-page__about-info">
+              <span class="order-page__about-value">{{ auth.user!.name }}</span>
+              <span class="order-page__about-value">{{ auth.user!.phone }}</span>
+              <span class="order-page__about-value">{{ auth.user!.email }}</span>
             </div>
+            <p v-else class="order-page__about-empty">
+              Заполните данные в
+              <router-link to="/account" class="order-page__about-link">настройках профиля</router-link>
+            </p>
           </div>
 
           <hr class="order-page__divider">
@@ -269,8 +265,13 @@ async function submitOrder() {
             </div>
 
             <div v-if="timing === 'scheduled'" class="order-page__scheduled-row">
-              <AppInput v-model="scheduledDate" placeholder="Дата" type="date" />
-              <AppSelect v-model="scheduledTime" placeholder="Время" :options="timeOptions" />
+              <AppInput v-model="scheduledDate" placeholder="Дата" type="date" :min="minDate" />
+              <AppSelect
+                v-model="scheduledTime"
+                placeholder="Время"
+                :options="availableTimeSlots"
+                :disabled="!scheduledDate"
+              />
             </div>
           </div>
 
@@ -282,32 +283,8 @@ async function submitOrder() {
             <div class="order-page__radio-row">
               <AppRadio v-model="payment" value="cash" name="payment" label="Наличными" />
               <AppRadio v-model="payment" value="card" name="payment" label="Картой" />
-              <AppRadio v-model="payment" value="apple-pay" name="payment" label="Apple Pay" />
             </div>
           </div>
-
-          <!-- Сдача (only for cash) -->
-          <template v-if="payment === 'cash'">
-            <hr class="order-page__divider">
-
-            <div class="order-page__checkout-section">
-              <h3 class="order-page__checkout-heading">Сдача</h3>
-              <div class="order-page__radio-row">
-                <AppRadio v-model="changeMode" value="none" name="change" label="Без сдачи" />
-                <div class="order-page__change-with">
-                  <AppRadio v-model="changeMode" value="with" name="change" label="Сдача с" />
-                  <AppInput
-                    :model-value="changeAmount"
-                    placeholder="1 000"
-                    suffix="₽"
-                    digits-only
-                    class="order-page__change-input"
-                    @update:model-value="handleChangeAmount"
-                  />
-                </div>
-              </div>
-            </div>
-          </template>
 
           <hr class="order-page__divider">
 
@@ -323,7 +300,12 @@ async function submitOrder() {
           <span class="order-page__footer-total">
             Итого: {{ formatPrice(cart.total) }} ₽
           </span>
-          <AppButton variant="primary" class="order-page__footer-btn" @click="submitOrder">
+          <AppButton
+            variant="primary"
+            class="order-page__footer-btn"
+            :disabled="isSubmitDisabled"
+            @click="submitOrder"
+          >
             Оформить заказ
           </AppButton>
         </div>
@@ -477,14 +459,30 @@ async function submitOrder() {
     margin: 0;
   }
 
-  // About row (3 columns)
-  &__about-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: $spacing-12;
+  // About — profile data display
+  &__about-info {
+    display: flex;
+    gap: $spacing-20;
+    flex-wrap: wrap;
+  }
 
-    @include media-down($breakpoint-md) {
-      grid-template-columns: 1fr;
+  &__about-value {
+    font-size: $font-size-base;
+    color: $color-text;
+  }
+
+  &__about-empty {
+    font-size: $font-size-base;
+    color: $color-text-secondary;
+  }
+
+  &__about-link {
+    color: $color-primary;
+    text-decoration: none;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+      text-decoration: underline;
     }
   }
 
@@ -515,18 +513,6 @@ async function submitOrder() {
     @include media-down($breakpoint-sm) {
       grid-template-columns: 1fr;
     }
-  }
-
-  // Change: radio + inline input
-  &__change-with {
-    display: flex;
-    align-items: center;
-    gap: $spacing-12;
-  }
-
-  &__change-input {
-    width: 120px;
-    flex-shrink: 0;
   }
 
   // ══════════════════════════

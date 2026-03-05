@@ -22,6 +22,7 @@ export interface PizzaProduct {
   weight: string
   ingredients: IngredientItem[]
   addons: AddonItem[]
+  filters: string[]
 }
 
 export interface CatalogProduct {

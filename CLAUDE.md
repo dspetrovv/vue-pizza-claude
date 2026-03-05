@@ -130,7 +130,7 @@ src/
 | Store | Path | Description |
 |-------|------|-------------|
 | useCartStore | `src/stores/cart.ts` | Cart state: items, total, count, add/remove/update/clear |
-| useAuthStore | `src/stores/auth.ts` | Auth state: fake JWT token + user in localStorage, login/logout, isAuthenticated |
+| useAuthStore | `src/stores/auth.ts` | Auth state: fake JWT token + user (name/phone/email) in localStorage, login/logout/updateProfile, isAuthenticated/hasCompleteProfile |
 
 ## Utils
 | Util | Path | Description |
@@ -144,7 +144,7 @@ src/
 - **Config:** `vitest.config.ts` (Vue plugin, `@` alias, jsdom, global test APIs)
 - **Setup:** `src/__tests__/setup.ts` (stubs: IntersectionObserver, ResizeObserver, scrollIntoView, scrollTo)
 - **Scripts:** `npm run test` (single run), `npm run test:watch` (watch mode)
-- **Coverage:** 38 test files, 250 tests across utils, config, API, stores, composables, UI components, data modules
+- **Coverage:** 38 test files, 262 tests across utils, config, API, stores, composables, UI components, data modules
 - **Build isolation:** Test files excluded from `vue-tsc` build via `tsconfig.app.json` → `"exclude": ["src/**/__tests__/**"]`
 
 ## Key Decisions Log
@@ -176,6 +176,11 @@ src/
 | 2026-02-28 | API service layer | config/ + api/ + data/ + types/; .env VITE_API_MODE=mock|real toggle; all hardcoded data extracted to src/data/, API services in src/api/ with mock/real switch |
 | 2026-03-01 | Vitest test suite | 38 test files, 250 tests; vitest 4 + vue-test-utils 2 + jsdom; centralized setup with browser API stubs |
 | 2026-03-01 | Pizza SVG favicon | Custom pizza-themed SVG favicon replacing default Vite icon |
+| 2026-03-04 | Ingredient-aware cart items | Same pizza with different ingredient modifications treated as separate cart items; CartItem shows added (green) / removed (red) ingredients |
+| 2026-03-04 | Profile-based checkout | "О вас" reads from auth store profile; link to settings if incomplete; submit disabled without profile |
+| 2026-03-04 | Dynamic time slots | Scheduled order: date min=today, time generated dynamically (now+1h rounded to :00/:30, max 21:00) |
+| 2026-03-04 | Checkout cleanup | Removed "Сдача" block and Apple Pay payment option; auth store gains email, updateProfile, hasCompleteProfile |
+| 2026-03-04 | Functional pizza filters | Frontend filtering: PizzaProduct.filters[], OR within group, AND between groups; empty = show all; filter count badge; empty state message |
 
 ## Current State
 - [x] Project scaffolding (Vite + Vue 3 + TS)
@@ -196,8 +201,13 @@ src/
 - [x] Accessibility (a11y): ARIA attributes, semantic HTML, keyboard navigation across all components
 - [x] Responsive header: hamburger menu on mobile (< 1024px) with slide-down nav panel
 - [x] API layer: mock/real toggle via .env, all static data extracted to src/data/, services in src/api/
-- [x] Test suite: 38 files, 250 tests (vitest + vue-test-utils), all passing
+- [x] Test suite: 38 files, 262 tests (vitest + vue-test-utils), all passing
 - [x] Custom pizza SVG favicon
+- [x] Ingredient-aware cart: different modifications = separate cart items, visual indicators in CartItem
+- [x] Profile-based checkout: "О вас" from auth store, link to settings if incomplete, submit disabled
+- [x] Dynamic time slots: now+1h rounded :00/:30, max 21:00, date min=today
+- [x] Checkout cleanup: removed "Сдача" block and Apple Pay option
+- [x] Functional pizza filters: PizzaProduct.filters[], OR within group / AND between groups, filter count badge, empty state
 
 ## Git
 - **Remote:** `git@github.com:dspetrovv/vue-pizza-claude.git`

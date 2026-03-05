@@ -54,6 +54,8 @@ function computeTotal(items: CartItemData[]): number {
         :quantity="item.quantity"
         :image-url="item.imageUrl"
         :emoji="item.emoji"
+        :added-ingredients="item.addedIngredients"
+        :removed-ingredients="item.removedIngredients"
         :currency="currency"
         @update:quantity="onQuantityChange(item.id, $event)"
         @remove="emit('remove', item.id)"

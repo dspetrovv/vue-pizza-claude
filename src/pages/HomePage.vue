@@ -23,7 +23,7 @@ onMounted(async () => {
 // ── Filter sidebar ──
 const isFilterOpen = ref(false)
 
-const selectedFilters = reactive<Set<string>>(new Set(['Хит']))
+const selectedFilters = reactive<Set<string>>(new Set())
 
 function toggleFilter(item: string) {
   if (selectedFilters.has(item)) {
@@ -36,6 +36,27 @@ function toggleFilter(item: string) {
 function resetFilters() {
   selectedFilters.clear()
 }
+
+// ── Filtered pizzas (OR within group, AND between groups) ──
+const filteredPizzas = computed(() => {
+  const pizzas = catalog.value?.pizzas ?? []
+  if (selectedFilters.size === 0) return pizzas
+
+  const groups = catalog.value?.filterGroups ?? []
+
+  // Group selected filters by their filter group
+  const activeGroups = groups
+    .map(g => g.items.filter(item => selectedFilters.has(item)))
+    .filter(items => items.length > 0)
+
+  if (activeGroups.length === 0) return pizzas
+
+  return pizzas.filter(pizza =>
+    activeGroups.every(groupItems =>
+      groupItems.some(item => pizza.filters.includes(item)),
+    ),
+  )
+})
 
 // ── Product Modal ──
 const isProductOpen = ref(false)
@@ -62,15 +83,34 @@ function handleSalesSelect(item: { name: string; price: number; emoji?: string }
 
 function handlePizzaAdd(config: ProductConfig) {
   if (!selectedPizza.value || !catalog.value) return
+  const pizza = selectedPizza.value
   const sizeLabel = catalog.value.pizzaSizeOptions.find(o => o.value === config.size)?.label ?? config.size
   const doughLabel = catalog.value.pizzaDoughOptions.find(o => o.value === config.dough)?.label ?? config.dough
+
+  const removedSorted = [...config.removedIngredients].sort()
+  const addonsSorted = [...config.selectedAddons].sort()
+
+  const removedSuffix = removedSorted.length ? `-r:${removedSorted.join(',')}` : ''
+  const addonsSuffix = addonsSorted.length ? `-a:${addonsSorted.join(',')}` : ''
+  const baseId = pizza.name.toLowerCase().replace(/\s+/g, '-')
+  const uniqueId = `${baseId}-${config.dough}-${config.size}${removedSuffix}${addonsSuffix}`
+
+  const removedNames = pizza.ingredients
+    .filter(i => config.removedIngredients.includes(i.id))
+    .map(i => i.name)
+  const addedNames = pizza.addons
+    .filter(a => config.selectedAddons.includes(a.id))
+    .map(a => a.name)
+
   cart.addItem({
-    id: `${selectedPizza.value.name.toLowerCase().replace(/\s+/g, '-')}-${config.dough}-${config.size}`,
-    name: selectedPizza.value.name,
+    id: uniqueId,
+    name: pizza.name,
     description: `${doughLabel} тесто, ${sizeLabel}`,
     price: config.totalPrice,
     quantity: 1,
-    emoji: selectedPizza.value.emoji,
+    emoji: pizza.emoji,
+    removedIngredients: removedNames.length ? removedNames : undefined,
+    addedIngredients: addedNames.length ? addedNames : undefined,
   })
 }
 
@@ -115,12 +155,12 @@ function handleAddToCart(product: { name: string; price: number; emoji?: string 
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M2 4H14M4 8H12M6 12H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
-          Фильтры
+          Фильтры{{ selectedFilters.size ? ` (${selectedFilters.size})` : '' }}
         </AppButton>
       </div>
       <div class="home__grid home__grid--large">
         <ProductCard
-          v-for="item in catalog.pizzas"
+          v-for="item in filteredPizzas"
           :key="item.name"
           :name="item.name"
           :description="item.description"
@@ -130,6 +170,10 @@ function handleAddToCart(product: { name: string; price: number; emoji?: string 
           @select="openPizzaModal(item)"
         />
       </div>
+
+      <p v-if="filteredPizzas.length === 0" class="home__empty">
+        Ничего не найдено. Попробуйте изменить фильтры.
+      </p>
     </section>
 
     <!-- Суши -->
@@ -337,6 +381,13 @@ function handleAddToCart(product: { name: string; price: number; emoji?: string 
     font-size: $font-size-lg;
     font-weight: $font-weight-bold;
     color: $color-text;
+  }
+
+  &__empty {
+    text-align: center;
+    color: $color-text-secondary;
+    font-size: $font-size-base;
+    padding: $spacing-24 0;
   }
 
   &__grid {

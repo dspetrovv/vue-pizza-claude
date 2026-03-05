@@ -48,6 +48,29 @@ describe('catalog data', () => {
       expect(pizza.weight).toBeTruthy()
       expect(pizza.ingredients.length).toBeGreaterThan(0)
       expect(pizza.addons.length).toBeGreaterThan(0)
+      expect(Array.isArray(pizza.filters)).toBe(true)
+      expect(pizza.filters.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('pizza filters only contain values from filterGroups', () => {
+    const allFilterValues = filterGroups.flatMap(g => g.items)
+    for (const pizza of pizzas) {
+      for (const filter of pizza.filters) {
+        expect(allFilterValues).toContain(filter)
+      }
+    }
+  })
+
+  it('vegetarian pizzas have Вегетарианская filter', () => {
+    const vegPizzas = pizzas.filter(p => p.filters.includes('Вегетарианская'))
+    expect(vegPizzas.length).toBeGreaterThan(0)
+    // Vegetarian pizzas should not have meat filters
+    const meatFilters = ['Пепперони', 'Ветчина', 'Бекон', 'Курица', 'Колбаски']
+    for (const pizza of vegPizzas) {
+      for (const meat of meatFilters) {
+        expect(pizza.filters).not.toContain(meat)
+      }
     }
   })
 

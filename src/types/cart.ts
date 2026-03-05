@@ -6,4 +6,6 @@ export interface CartItemData {
   quantity: number
   imageUrl?: string
   emoji?: string
+  addedIngredients?: string[]
+  removedIngredients?: string[]
 }

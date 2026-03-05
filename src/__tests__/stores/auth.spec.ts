@@ -24,6 +24,7 @@ describe('useAuthStore', () => {
     expect(auth.user).not.toBeNull()
     expect(auth.user!.phone).toBe('+79991234567')
     expect(auth.user!.name).toBe('')
+    expect(auth.user!.email).toBe('')
   })
 
   it('login generates JWT-like token', () => {
@@ -61,7 +62,7 @@ describe('useAuthStore', () => {
   it('restores state from localStorage on init', () => {
     // Simulate previously saved data
     const fakeToken = 'saved.token.here'
-    const fakeUser = { phone: '+79997654321', name: 'Test' }
+    const fakeUser = { phone: '+79997654321', name: 'Test', email: 'test@mail.com' }
     localStorage.setItem('auth_token', fakeToken)
     localStorage.setItem('auth_user', JSON.stringify(fakeUser))
 
@@ -77,6 +78,42 @@ describe('useAuthStore', () => {
 
     const auth = useAuthStore()
     expect(auth.token).toBe('some-token')
+    expect(auth.user).toBeNull()
+  })
+
+  it('hasCompleteProfile is false after login (no name/email)', () => {
+    const auth = useAuthStore()
+    auth.login('+79991234567')
+
+    expect(auth.hasCompleteProfile).toBe(false)
+  })
+
+  it('hasCompleteProfile is true when all fields are filled', () => {
+    const auth = useAuthStore()
+    auth.login('+79991234567')
+    auth.updateProfile({ name: 'Вадим', email: 'test@mail.com' })
+
+    expect(auth.hasCompleteProfile).toBe(true)
+  })
+
+  it('updateProfile updates user data and persists', () => {
+    const auth = useAuthStore()
+    auth.login('+79991234567')
+    auth.updateProfile({ name: 'Вадим', email: 'test@mail.com' })
+
+    expect(auth.user!.name).toBe('Вадим')
+    expect(auth.user!.email).toBe('test@mail.com')
+    expect(auth.user!.phone).toBe('+79991234567')
+
+    const stored = JSON.parse(localStorage.getItem('auth_user')!)
+    expect(stored.name).toBe('Вадим')
+    expect(stored.email).toBe('test@mail.com')
+  })
+
+  it('updateProfile does nothing when not logged in', () => {
+    const auth = useAuthStore()
+    auth.updateProfile({ name: 'Test' })
+
     expect(auth.user).toBeNull()
   })
 })

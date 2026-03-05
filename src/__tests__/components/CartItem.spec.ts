@@ -43,4 +43,40 @@ describe('CartItem', () => {
     const wrapper = mount(CartItem, { props: baseProps })
     expect(wrapper.find('.cart-item__remove').attributes('aria-label')).toBe('Удалить')
   })
+
+  it('does not render ingredient mods when not provided', () => {
+    const wrapper = mount(CartItem, { props: baseProps })
+    expect(wrapper.find('.cart-item__mods--added').exists()).toBe(false)
+    expect(wrapper.find('.cart-item__mods--removed').exists()).toBe(false)
+  })
+
+  it('renders added ingredients in green', () => {
+    const wrapper = mount(CartItem, {
+      props: { ...baseProps, addedIngredients: ['Шампиньоны', 'Оливки'] },
+    })
+    const added = wrapper.find('.cart-item__mods--added')
+    expect(added.exists()).toBe(true)
+    expect(added.text()).toBe('+ Шампиньоны, Оливки')
+  })
+
+  it('renders removed ingredients in red', () => {
+    const wrapper = mount(CartItem, {
+      props: { ...baseProps, removedIngredients: ['Томаты'] },
+    })
+    const removed = wrapper.find('.cart-item__mods--removed')
+    expect(removed.exists()).toBe(true)
+    expect(removed.text()).toBe('- Томаты')
+  })
+
+  it('renders both added and removed ingredients', () => {
+    const wrapper = mount(CartItem, {
+      props: {
+        ...baseProps,
+        addedIngredients: ['Базилик'],
+        removedIngredients: ['Пепперони', 'Томаты'],
+      },
+    })
+    expect(wrapper.find('.cart-item__mods--added').text()).toBe('+ Базилик')
+    expect(wrapper.find('.cart-item__mods--removed').text()).toBe('- Пепперони, Томаты')
+  })
 })

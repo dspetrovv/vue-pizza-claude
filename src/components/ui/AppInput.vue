@@ -14,6 +14,7 @@ interface AppInputProps {
   suffix?: string
   digitsOnly?: boolean
   maxLength?: number
+  min?: string
 }
 
 const props = withDefaults(defineProps<AppInputProps>(), {
@@ -25,6 +26,7 @@ const props = withDefaults(defineProps<AppInputProps>(), {
   suffix: undefined,
   digitsOnly: false,
   maxLength: undefined,
+  min: undefined,
 })
 
 const emit = defineEmits<{
@@ -94,6 +96,7 @@ function onPaste(e: ClipboardEvent) {
         :value="modelValue"
         :placeholder="placeholder"
         :disabled="disabled"
+        :min="min"
         :inputmode="digitsOnly ? 'numeric' : undefined"
         :aria-invalid="error ? true : undefined"
         :aria-describedby="error ? errorId : undefined"

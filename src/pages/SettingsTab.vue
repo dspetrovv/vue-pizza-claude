@@ -1,15 +1,26 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { usePhoneMask } from '@/composables/usePhoneMask'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 
 // ── Personal data ──
-const customerName = ref('Вадим')
+const customerName = ref('')
 const { formatted: phoneFormatted, onInput: phoneOnInput } = usePhoneMask()
-const customerEmail = ref('mail@gmail.com')
-const birthDate = ref('1996-02-13')
+const customerEmail = ref('')
+const birthDate = ref('')
+
+onMounted(() => {
+  if (auth.user) {
+    customerName.value = auth.user.name
+    customerEmail.value = auth.user.email
+    if (auth.user.phone) phoneOnInput(auth.user.phone)
+  }
+})
 
 // ── Password ──
 const oldPassword = ref('')
@@ -18,6 +29,14 @@ const confirmPassword = ref('')
 
 // ── Subscriptions ──
 const subOffers = ref(true)
+
+function saveProfile() {
+  auth.updateProfile({
+    name: customerName.value,
+    email: customerEmail.value,
+    phone: phoneFormatted.value,
+  })
+}
 </script>
 
 <template>
@@ -44,7 +63,7 @@ const subOffers = ref(true)
         <AppInput v-model="birthDate" label="Дата рождения" placeholder="ДД.ММ.ГГГГ" type="date" />
       </div>
 
-      <AppButton variant="primary" class="settings-tab__action">
+      <AppButton variant="primary" class="settings-tab__action" @click="saveProfile">
         Сохранить изменения
       </AppButton>
     </div>

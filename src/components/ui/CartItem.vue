@@ -9,12 +9,16 @@ interface CartItemProps {
   imageUrl?: string
   emoji?: string
   currency?: string
+  addedIngredients?: string[]
+  removedIngredients?: string[]
 }
 
 withDefaults(defineProps<CartItemProps>(), {
   imageUrl: undefined,
   emoji: undefined,
   currency: '₽',
+  addedIngredients: undefined,
+  removedIngredients: undefined,
 })
 
 defineEmits<{
@@ -40,6 +44,12 @@ defineEmits<{
         <div class="cart-item__info">
           <span class="cart-item__name">{{ name }}</span>
           <span class="cart-item__description">{{ description }}</span>
+          <span v-if="addedIngredients?.length" class="cart-item__mods cart-item__mods--added">
+            + {{ addedIngredients.join(', ') }}
+          </span>
+          <span v-if="removedIngredients?.length" class="cart-item__mods cart-item__mods--removed">
+            - {{ removedIngredients.join(', ') }}
+          </span>
         </div>
         <button class="cart-item__remove" aria-label="Удалить" @click="$emit('remove')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -122,6 +132,19 @@ defineEmits<{
   &__description {
     font-size: $font-size-sm;
     color: $color-text-secondary;
+  }
+
+  &__mods {
+    font-size: $font-size-sm;
+    line-height: $line-height-tight;
+
+    &--added {
+      color: $color-success;
+    }
+
+    &--removed {
+      color: $color-error;
+    }
   }
 
   &__controls {

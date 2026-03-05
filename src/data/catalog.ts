@@ -33,6 +33,7 @@ export const pizzas: PizzaProduct[] = [
     tag: 'New',
     emoji: '🍕',
     weight: '400 г',
+    filters: ['Новинка', 'Моцарелла', 'Пепперони', 'Томаты'],
     ingredients: [
       { id: 'mozzarella', name: 'Моцарелла', emoji: '🧀' },
       { id: 'pepperoni', name: 'Пепперони', emoji: '🍖' },
@@ -54,6 +55,7 @@ export const pizzas: PizzaProduct[] = [
     price: 349,
     emoji: '🍕',
     weight: '350 г',
+    filters: ['Вегетарианская', 'Моцарелла', 'Томаты'],
     ingredients: [
       { id: 'mozzarella', name: 'Моцарелла', emoji: '🧀' },
       { id: 'tomatoes', name: 'Томаты', emoji: '🍅' },
@@ -73,6 +75,7 @@ export const pizzas: PizzaProduct[] = [
     price: 499,
     emoji: '🍕',
     weight: '420 г',
+    filters: ['Вегетарианская', 'Моцарелла', 'Чеддер', 'Пармезан', 'Дор Блю'],
     ingredients: [
       { id: 'mozzarella', name: 'Моцарелла', emoji: '🧀' },
       { id: 'cheddar', name: 'Чеддер', emoji: '🧀' },
@@ -92,6 +95,7 @@ export const pizzas: PizzaProduct[] = [
     price: 449,
     emoji: '🍕',
     weight: '410 г',
+    filters: ['Моцарелла', 'Ветчина', 'Ананас'],
     ingredients: [
       { id: 'ham', name: 'Ветчина', emoji: '🥓' },
       { id: 'pineapple', name: 'Ананасы', emoji: '🍍' },
@@ -112,6 +116,7 @@ export const pizzas: PizzaProduct[] = [
     tag: 'Хит',
     emoji: '🍕',
     weight: '500 г',
+    filters: ['Хит', 'Моцарелла', 'Пепперони', 'Ветчина', 'Бекон', 'Курица', 'Томаты'],
     ingredients: [
       { id: 'pepperoni', name: 'Пепперони', emoji: '🍖' },
       { id: 'ham', name: 'Ветчина', emoji: '🥓' },
@@ -134,6 +139,7 @@ export const pizzas: PizzaProduct[] = [
     tag: 'Новинка',
     emoji: '🍕',
     weight: '390 г',
+    filters: ['Новинка', 'Острая', 'Моцарелла', 'Пепперони', 'Перец', 'Томаты'],
     ingredients: [
       { id: 'spicy-pepperoni', name: 'Острая пепперони', emoji: '🌶️' },
       { id: 'jalapeno', name: 'Халапеньо', emoji: '🌶️' },
@@ -153,6 +159,7 @@ export const pizzas: PizzaProduct[] = [
     price: 429,
     emoji: '🍕',
     weight: '380 г',
+    filters: ['Вегетарианская', 'Моцарелла', 'Грибы'],
     ingredients: [
       { id: 'mushrooms', name: 'Шампиньоны', emoji: '🍄' },
       { id: 'mozzarella', name: 'Моцарелла', emoji: '🧀' },
@@ -172,6 +179,7 @@ export const pizzas: PizzaProduct[] = [
     price: 519,
     emoji: '🍕',
     weight: '430 г',
+    filters: ['Моцарелла', 'Пармезан', 'Бекон'],
     ingredients: [
       { id: 'bacon', name: 'Бекон', emoji: '🥓' },
       { id: 'parmesan', name: 'Пармезан', emoji: '🧀' },
